@@ -4,7 +4,8 @@ from modules import sd_models, shared
 import gradio as gr
 
 from modules.call_queue import wrap_gradio_gpu_call
-from modules.shared import cmd_opts
+from modules.shared import cmd_opts, shared_instance
+
 from modules.ui_components import FormRow
 
 from exporter import export_onnx, export_trt
@@ -87,12 +88,12 @@ def export_unet_to_trt(
         )
         yield logging_history
 
-    unet_hidden_dim = shared.sd_model.model.diffusion_model.in_channels
+    unet_hidden_dim = shared_instance.sd_model.model.diffusion_model.in_channels
     if unet_hidden_dim == 9:
         is_inpaint = True
 
-    model_hash = shared.sd_model.sd_checkpoint_info.hash
-    model_name = shared.sd_model.sd_checkpoint_info.model_name
+    model_hash = shared_instance.sd_model.sd_checkpoint_info.hash
+    model_name = shared_instance.sd_model.sd_checkpoint_info.model_name
     onnx_filename, onnx_path = modelmanager.get_onnx_path(model_name, model_hash)
 
     logging_history = log_md(
@@ -102,7 +103,7 @@ def export_unet_to_trt(
 
     timing_cache = modelmanager.get_timing_cache()
 
-    version = get_version_from_model(shared.sd_model)
+    version = get_version_from_model(shared_instance.sd_model)
 
     pipeline = PIPELINE_TYPE.TXT2IMG
     if is_inpaint:
@@ -115,7 +116,7 @@ def export_unet_to_trt(
     if static_shapes:
         min_textlen = max_textlen = opt_textlen
 
-    if shared.sd_model.is_sdxl:
+    if shared_instance.sd_model.is_sdxl:
         pipeline = PIPELINE_TYPE.SD_XL_BASE
         modelobj = make_OAIUNetXL(
             version, pipeline, "cuda", False, batch_max, opt_textlen, max_textlen
@@ -218,12 +219,12 @@ def export_lora_to_trt(lora_name, force_export):
             logging_history, "FP16 has been disabled because your GPU does not support it."
         )
         yield logging_history
-    unet_hidden_dim = shared.sd_model.model.diffusion_model.in_channels
+    unet_hidden_dim = shared_instance.sd_model.model.diffusion_model.in_channels
     if unet_hidden_dim == 9:
         is_inpaint = True
 
-    model_hash = shared.sd_model.sd_checkpoint_info.hash
-    model_name = shared.sd_model.sd_checkpoint_info.model_name
+    model_hash = shared_instance.sd_model.sd_checkpoint_info.hash
+    model_name = shared_instance.sd_model.sd_checkpoint_info.model_name
     base_name = f"{model_name}"  # _{model_hash}
 
     available_lora_models = get_lora_checkpoints()
@@ -237,13 +238,13 @@ def export_lora_to_trt(lora_name, force_export):
         lora_name, base_name
     )
 
-    version = get_version_from_model(shared.sd_model)
+    version = get_version_from_model(shared_instance.sd_model)
 
     pipeline = PIPELINE_TYPE.TXT2IMG
     if is_inpaint:
         pipeline = PIPELINE_TYPE.INPAINT
 
-    if shared.sd_model.is_sdxl:
+    if shared_instance.sd_model.is_sdxl:
         pipeline = PIPELINE_TYPE.SD_XL_BASE
         modelobj = make_OAIUNetXL(version, pipeline, "cuda", False, 1, 77, 77)
         diable_optimizations = True
@@ -313,7 +314,7 @@ def export_lora_to_trt(lora_name, force_export):
 
 
 def export_default_unet_to_trt():
-    is_xl = shared.sd_model.is_sdxl
+    is_xl = shared_instance.sd_model.is_sdxl
 
     batch_min = 1
     batch_opt = 1
@@ -574,7 +575,7 @@ def get_valid_lora_checkpoints():
     return [
         f"{k} ({v['version']})"
         for k, v in available_lora_models.items()
-        if v["version"] == get_version_from_model(shared.sd_model)
+        if v["version"] == get_version_from_model(shared_instance.sd_model)
         or v["version"] == "Unknown"
     ]
 

@@ -12,7 +12,7 @@ from utilities import Engine
 from typing import List
 from model_manager import TRT_MODEL_DIR, modelmanager
 from modules import sd_models, shared
-
+from modules.shared import shared_instance
 
 class TrtUnetOption(sd_unet.SdUnetOption):
     def __init__(self, name: str, filename: List[dict]):
@@ -31,19 +31,19 @@ class TrtUnetOption(sd_unet.SdUnetOption):
 
 
 def validate_sd_version(model_name, exact=False):
-    loaded_model = shared.sd_model.sd_checkpoint_info.model_name
+    loaded_model = shared_instance.sd_model.sd_checkpoint_info.model_name
     if exact:
         if not loaded_model == model_name:
             raise ValueError(
                 f"Selected torch model ({loaded_model}) does not match the selected TensorRT U-Net ({model_name}). Please ensure that both models are the same."
             )
     else:
-        if shared.sd_model.is_sdxl:
+        if shared_instance.sd_model.is_sdxl:
             if not "xl" in model_name:
                 raise ValueError(
                     f"Selected torch model ({loaded_model}) does not match the selected TensorRT U-Net ({model_name}). Please ensure that both models are the same."
                 )
-        loaded_version = 1 if shared.sd_model.is_sd1 else 2
+        loaded_version = 1 if shared_instance.sd_model.is_sd1 else 2
         if f"v{loaded_version}" not in model_name:
             raise ValueError(
                 f"Selected torch model ({loaded_model}) does not match the selected TensorRT U-Net ({model_name}). Please ensure that both models are the same."

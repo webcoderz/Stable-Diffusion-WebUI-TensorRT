@@ -6,7 +6,7 @@ import time
 import shutil
 
 from modules import sd_hijack, sd_unet, shared
-
+from modules.shared import shared_instance
 from utilities import Engine
 import os
 
@@ -59,8 +59,8 @@ def export_onnx(
         if getattr(self, "checkpoint", False) == True:
             self.checkpoint = False
 
-    shared.sd_model.model.diffusion_model.apply(disable_checkpoint)
-    is_xl = shared.sd_model.is_sdxl
+    shared_instance.sd_model.model.diffusion_model.apply(disable_checkpoint)
+    is_xl = shared_instance.sd_model.is_sdxl
 
     sd_unet.apply_unet("None")
     sd_hijack.model_hijack.apply_optimizations("None")
@@ -76,7 +76,7 @@ def export_onnx(
                 profile["sample"][1][-2] * 8,
                 profile["sample"][1][-1] * 8,
             )
-            model = shared.sd_model.model.diffusion_model
+            model = shared_instance.sd_model.model.diffusion_model
 
             if lora_path:
                 model = apply_lora(model, lora_path, inputs)
@@ -139,7 +139,7 @@ def export_trt(trt_path, onnx_path, timing_cache, profile, use_fp16):
     engine = Engine(trt_path)
 
     # TODO Still approx. 2gb of VRAM unaccounted for...
-    model = shared.sd_model.cpu()
+    model = shared_instance.sd_model.cpu()
     torch.cuda.empty_cache()
 
     s = time.time()
@@ -155,5 +155,5 @@ def export_trt(trt_path, onnx_path, timing_cache, profile, use_fp16):
     e = time.time()
     info(f"Time taken to build: {(e-s)}s")
 
-    shared.sd_model = model.cuda()
+    shared_instance.sd_model = model.cuda()
     return ret
